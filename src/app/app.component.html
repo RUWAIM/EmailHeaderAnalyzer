@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Header Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-section label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        .input-section textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .input-section textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .clear-btn {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .clear-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .results {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .result-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .result-item {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+
+        .result-item strong {
+            color: #333;
+            display: inline-block;
+            min-width: 150px;
+        }
+
+        .result-item span {
+            color: #555;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left-color: #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .warning strong {
+            color: #856404;
+        }
+
+        .route-hop {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 3px solid #28a745;
+        }
+
+        .route-hop:last-child {
+            border-left-color: #dc3545;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📧 Email Header Analyzer</h1>
+            <p>Analyze email headers for security, routing, and authentication information</p>
+        </div>
+
+        <div class="content">
+            <div class="input-section">
+                <label for="emailHeader">Paste Email Header:</label>
+                <textarea id="emailHeader" placeholder="Paste your full email header here...
+
+Example:
+Received: from mail.example.com
+From: sender@example.com
+To: recipient@example.com
+Subject: Test Email
+..."></textarea>
+            </div>
+
+            <div class="button-group">
+                <button class="analyze-btn" onclick="analyzeHeader()">Analyze Header</button>
+                <button class="clear-btn" onclick="clearAll()">Clear</button>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing email header...</p>
+            </div>
+
+            <div class="results" id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        function analyzeHeader() {
+            const headerText = document.getElementById('emailHeader').value.trim();
+            
+            if (!headerText) {
+                alert('Please paste an email header to analyze');
+                return;
+            }
+
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('results').classList.remove('show');
+
+            // Send to backend API
+            fetch('/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ header: headerText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loading').classList.remove('show');
+                displayResults(data);
+            })
+            .catch(error => {
+                document.getElementById('loading').classList.remove('show');
+                alert('Error analyzing header: ' + error.message);
+            });
+        }
+
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            let html = '';
+
+            // Basic Information
+            if (data.basic_info) {
+                html += '<div class="result-card">';
+                html += '<h3>📋 Basic Information</h3>';
+                for (const [key, value] of Object.entries(data.basic_info)) {
+                    if (value) {
+                        html += `<div class="result-item"><strong>${key}:</strong> <span>${escapeHtml(value)}</span></div>`;
+                    }
+                }
+                html += '</div>';
+            }
+
+            // Security Analysis
+            if (data.security) {
+                html += '<div class="result-card">';
+                html += '<h3>🔒 Security Analysis</h3>';
+                for (const [key, value] of Object.entries(data.security)) {
+                    html += `<div class="result-item"><strong>${key}:</strong> <span>${escapeHtml(String(value))}</span></div>`;
+                }
+                html += '</div>';
+            }
+
+            // Warnings
+            if (data.warnings && data.warnings.length > 0) {
+                html += '<div class="warning">';
+                html += '<strong>⚠️ Warnings:</strong><ul style="margin-top: 10px; margin-left: 20px;">';
+                data.warnings.forEach(warning => {
+                    html += `<li>${escapeHtml(warning)}</li>`;
+                });
+                html += '</ul></div>';
+            }
+
+            // Email Route
+            if (data.route && data.route.length > 0) {
+                html += '<div class="result-card">';
+                html += '<h3>🌐 Email Route (Newest to Oldest)</h3>';
+                data.route.forEach((hop, index) => {
+                    html += `<div class="route-hop">`;
+                    html += `<strong>Hop ${index + 1}:</strong><br>`;
+                    html += `Server: ${escapeHtml(hop.server || 'Unknown')}<br>`;
+                    if (hop.timestamp) html += `Time: ${escapeHtml(hop.timestamp)}<br>`;
+                    if (hop.ip) html += `IP: ${escapeHtml(hop.ip)}`;
+                    html += `</div>`;
+                });
+                html += '</div>';
+            }
+
+            resultsDiv.innerHTML = html;
+            resultsDiv.classList.add('show');
+        }
+
+        function clearAll() {
+            document.getElementById('emailHeader').value = '';
+            document.getElementById('results').classList.remove('show');
+            document.getElementById('results').innerHTML = '';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
